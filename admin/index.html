@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FUSE — Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <!-- LOGIN -->
+  <section class="login" id="loginView">
+    <form class="login__card" id="loginForm">
+      <h1 class="login__logo">FUSE<span>✦</span></h1>
+      <p class="login__sub">Portfolio Admin</p>
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password" required />
+      <button type="submit" class="btn btn--full">Enter</button>
+      <p class="login__err" id="loginErr"></p>
+    </form>
+  </section>
+
+  <!-- DASHBOARD -->
+  <main class="dash" id="dashView" hidden>
+    <header class="dash__top">
+      <div class="dash__brand">FUSE<span>✦</span> <em>Admin</em></div>
+      <div class="dash__actions">
+        <a href="/" target="_blank" class="link">View site ↗</a>
+        <button class="btn btn--ghost" id="logoutBtn">Log out</button>
+      </div>
+    </header>
+
+    <!-- UPLOAD -->
+    <section class="panel">
+      <h2 class="panel__title">Add a work</h2>
+      <form id="uploadForm" class="upload">
+        <label class="drop" id="drop">
+          <input type="file" id="file" accept="image/*,video/*" hidden />
+          <div class="drop__inner" id="dropInner">
+            <span class="drop__icon">⬆</span>
+            <span class="drop__text">Drag &amp; drop or <u>browse</u></span>
+            <span class="drop__hint">JPEG · PNG · GIF · WebP · MP4 · WebM · MOV — up to 200 MB</span>
+          </div>
+          <div class="drop__preview" id="dropPreview" hidden></div>
+        </label>
+
+        <div class="fields">
+          <label class="field">
+            <span>Client / Title</span>
+            <input type="text" id="client" placeholder="e.g. MAMA Fusion" required />
+          </label>
+          <label class="field">
+            <span>Type / Subtitle</span>
+            <input type="text" id="type" placeholder="e.g. AI Integrated Key Visual" />
+          </label>
+          <label class="field">
+            <span>Category</span>
+            <select id="cat">
+              <option value="content">Content</option>
+              <option value="branding">Branding</option>
+              <option value="keyvisual">Key Visual</option>
+              <option value="packaging">Packaging</option>
+              <option value="retouching">Retouching</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Short tag</span>
+            <input type="text" id="tag" placeholder="e.g. Digital design solutions" />
+          </label>
+          <label class="field">
+            <span>Tile size</span>
+            <select id="size">
+              <option value="span-6">Medium (1/2)</option>
+              <option value="span-8">Large (2/3)</option>
+              <option value="span-4">Tall (1/3)</option>
+            </select>
+          </label>
+          <button type="submit" class="btn btn--full" id="uploadBtn">Upload work</button>
+        </div>
+      </form>
+      <p class="msg" id="uploadMsg"></p>
+    </section>
+
+    <!-- LIST -->
+    <section class="panel">
+      <h2 class="panel__title">Manage works <span class="count" id="count">0</span></h2>
+      <div class="grid" id="list"></div>
+      <p class="empty" id="empty" hidden>No works yet — upload your first above.</p>
+    </section>
+  </main>
+
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Runtime / uploads (server-generated)
+data/
+media/
+
+# Python
+__pycache__/
+*.pyc
+
+# Editor / OS
+.claude/
+.DS_Store
+
+# Unrelated questionnaire app (not part of FUSE)
+server.py
+public/

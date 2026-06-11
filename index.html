@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FUSE — AI-Integrated Design &amp; Production</title>
+  <meta name="description" content="FUSE combines experienced craftsmanship with AI-integrated production. People lead. AI expands. Craft decides." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- film grain overlay -->
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- progress bar -->
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+
+  <!-- NAV -->
+  <header class="nav" id="nav">
+    <a href="#top" class="nav__logo" aria-label="FUSE — home">
+      <svg class="logo-svg" viewBox="0 0 168 46" role="img" aria-label="FUSE">
+        <defs>
+          <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ffffff" />
+            <stop offset="0.32" stop-color="#e8e8e8" />
+            <stop offset="0.5" stop-color="#9a9a9a" />
+            <stop offset="0.62" stop-color="#6c6c6c" />
+            <stop offset="0.8" stop-color="#fbfbfb" />
+            <stop offset="1" stop-color="#c9c9c9" />
+          </linearGradient>
+        </defs>
+        <text x="0" y="36" class="logo-word" fill="url(#chrome)">FUSE</text>
+        <path class="logo-spark" fill="#d4ff00"
+          d="M150 6 C152 16 154 18 164 20 C154 22 152 24 150 34 C148 24 146 22 136 20 C146 18 148 16 150 6 Z" />
+      </svg>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="#work">Work</a>
+      <a href="#services">Services</a>
+      <a href="#studio">Studio</a>
+      <a href="#contact" class="nav__cta">Let's talk</a>
+    </nav>
+    <button class="nav__burger" id="burger" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span>
+    </button>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero" id="top">
+    <div class="hero__tag">
+      <span class="pulse"></span> AI-Integrated Design &amp; Production
+    </div>
+
+    <h1 class="hero__title">
+      <span class="line"><em>People</em> lead.</span>
+      <span class="line">AI <mark>expands</mark>.</span>
+      <span class="line">Craft <em>decides</em>.</span>
+    </h1>
+
+    <p class="hero__lead">
+      FUSE combines experienced craftsmanship with AI-integrated production to help
+      ideas expand, adapt, and scale — without losing quality or creative intent.
+    </p>
+
+    <div class="hero__meta">
+      <a href="#work" class="btn">View the work <span aria-hidden="true">↓</span></a>
+      <div class="hero__stats">
+        <div><strong>28</strong><span>Projects · 2025</span></div>
+        <div><strong>60</strong><span>Videos produced</span></div>
+        <div><strong>AI</strong><span>In-house production</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MARQUEE -->
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee__track">
+      <span>People Lead</span><span class="slash">✦</span>
+      <span>AI Expands</span><span class="slash">✦</span>
+      <span>Craft Decides</span><span class="slash">✦</span>
+      <span>People Lead</span><span class="slash">✦</span>
+      <span>AI Expands</span><span class="slash">✦</span>
+      <span>Craft Decides</span><span class="slash">✦</span>
+    </div>
+  </div>
+
+  <!-- WORK / PROJECT GRID -->
+  <section class="work" id="work">
+    <div class="section-head">
+      <span class="section-head__index">01 — Selected Work</span>
+      <h2 class="section-head__title">Credential <em>2026</em></h2>
+      <p class="section-head__sub">AI-integrated content, branding, key visuals, packaging &amp; retouching.</p>
+    </div>
+
+    <div class="filters" id="filters" role="tablist" aria-label="Filter projects">
+      <button class="filter is-active" data-filter="all">All</button>
+      <button class="filter" data-filter="content">Content</button>
+      <button class="filter" data-filter="branding">Branding</button>
+      <button class="filter" data-filter="keyvisual">Key Visual</button>
+      <button class="filter" data-filter="packaging">Packaging</button>
+      <button class="filter" data-filter="retouching">Retouching</button>
+    </div>
+
+    <div class="grid" id="grid">
+      <!-- Cards injected by JS -->
+    </div>
+  </section>
+
+  <!-- SERVICES -->
+  <section class="services" id="services">
+    <div class="marquee marquee--alt" aria-hidden="true">
+      <div class="marquee__track marquee__track--rev">
+        <span>OUR SERVICES</span><span class="slash">/</span>
+        <span>OUR SERVICES</span><span class="slash">/</span>
+        <span>OUR SERVICES</span><span class="slash">/</span>
+        <span>OUR SERVICES</span><span class="slash">/</span>
+        <span>OUR SERVICES</span><span class="slash">/</span>
+        <span>OUR SERVICES</span><span class="slash">/</span>
+        <span>OUR SERVICES</span><span class="slash">/</span>
+        <span>OUR SERVICES</span><span class="slash">/</span>
+      </div>
+    </div>
+
+    <div class="svc-grid">
+      <!-- Column 1 -->
+      <div class="svc reveal-up">
+        <h3 class="svc__title"><span class="w">AI Integrated</span> <span class="y">Digital Design Solutions.</span></h3>
+        <p class="svc__lead">Human-led design, expanded by AI systems.</p>
+        <ul class="svc__list">
+          <li>AI Integrated Key Visual Design</li>
+          <li>Digital Communication Design</li>
+          <li>Creative Social Contents</li>
+          <li>User Interface Design</li>
+        </ul>
+      </div>
+
+      <!-- Column 2 -->
+      <div class="svc reveal-up">
+        <h3 class="svc__title"><span class="y">Branding</span> <span class="w">Design.</span></h3>
+        <p class="svc__lead">Crafted identities, built for real-world execution.</p>
+        <h3 class="svc__title svc__title--sm"><span class="y">Packaging</span> <span class="w">Design.</span></h3>
+        <h3 class="svc__title svc__title--sm"><span class="y">Printing</span> <span class="w">Specialist.</span></h3>
+      </div>
+
+      <!-- Column 3 -->
+      <div class="svc reveal-up">
+        <h3 class="svc__title"><span class="y">Retouching &amp; Visual Craft With</span> <span class="w">AI Integration</span></h3>
+        <p class="svc__lead">Professional craft, powered by AI precision.</p>
+        <ul class="svc__list">
+          <li>Professional AI Retoucher</li>
+          <li>Visual AI Integration Specialist</li>
+          <li>AI Crafted Upscale Enhancement</li>
+          <li>3D Packaging</li>
+        </ul>
+      </div>
+
+      <!-- Column 4 -->
+      <div class="svc reveal-up">
+        <h3 class="svc__title"><span class="w">AI - Production</span> <span class="y">Services.</span></h3>
+        <p class="svc__lead">Where production opens new creative possibilities.</p>
+        <ul class="svc__list">
+          <li>AI VDO Production</li>
+          <li>Motion</li>
+          <li>Livestream</li>
+          <li>Digital Media Production</li>
+          <li>Videography</li>
+          <li>Photography</li>
+          <li>Post Production Services</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- STUDIO / MANIFESTO -->
+  <section class="studio" id="studio">
+    <div class="studio__statements">
+      <p class="reveal">Human-led design, <em>expanded by AI systems.</em></p>
+      <p class="reveal">Crafted identities, <em>built for real-world execution.</em></p>
+      <p class="reveal">Professional craft, <em>powered by AI precision.</em></p>
+      <p class="reveal">Where production <em>opens new creative possibilities.</em></p>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="contact" id="contact">
+    <span class="contact__index">03 — Let's make something</span>
+    <h2 class="contact__title">Ready to <mark>expand</mark><br />your next idea?</h2>
+    <a href="mailto:hello@fuse.studio" class="contact__mail">hello@fuse.studio</a>
+    <div class="contact__row">
+      <span>FUSE — AI Studio</span>
+      <span>Credential 2026</span>
+      <span>People lead. AI expands. Craft decides.</span>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span>© 2026 FUSE</span>
+    <span>AI-Integrated Design &amp; Production</span>
+    <a href="#top">Back to top ↑</a>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
