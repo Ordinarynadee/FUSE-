@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css" />
+  <link rel="stylesheet" href="/admin/admin.css?v=4" />
 </head>
 <body>
   <!-- LOGIN -->
@@ -82,6 +82,63 @@
       <p class="msg" id="uploadMsg"></p>
     </section>
 
+    <!-- DESIGN / THEME -->
+    <section class="panel">
+      <h2 class="panel__title">Design <span class="panel__sub">— colours, fonts &amp; size of the live site</span></h2>
+      <div class="design">
+        <div class="design__controls">
+          <div class="ctrl">
+            <label for="dAccent">Accent colour</label>
+            <div class="ctrl__row">
+              <input type="color" id="dAccent" value="#d4ff00" />
+              <input type="text" id="dAccentHex" class="hex" value="#d4ff00" maxlength="7" />
+            </div>
+          </div>
+          <div class="ctrl">
+            <label for="dBg">Background</label>
+            <div class="ctrl__row">
+              <input type="color" id="dBg" value="#050505" />
+              <input type="text" id="dBgHex" class="hex" value="#050505" maxlength="7" />
+            </div>
+          </div>
+          <div class="ctrl">
+            <label for="dText">Text colour</label>
+            <div class="ctrl__row">
+              <input type="color" id="dText" value="#f4f4ef" />
+              <input type="text" id="dTextHex" class="hex" value="#f4f4ef" maxlength="7" />
+            </div>
+          </div>
+          <div class="ctrl">
+            <label for="dHeadingFont">Headline font <span class="ctrl__note">(Google Fonts)</span></label>
+            <select id="dHeadingFont"></select>
+          </div>
+          <div class="ctrl">
+            <label for="dBodyFont">Body font <span class="ctrl__note">(Google Fonts)</span></label>
+            <select id="dBodyFont"></select>
+          </div>
+          <div class="ctrl">
+            <label for="dScale">Headline size <span class="ctrl__val" id="dScaleVal">100%</span></label>
+            <input type="range" id="dScale" min="0.7" max="1.4" step="0.05" value="1" />
+          </div>
+          <div class="ctrl">
+            <label for="dRadius">Corner radius <span class="ctrl__val" id="dRadiusVal">14px</span></label>
+            <input type="range" id="dRadius" min="0" max="40" step="2" value="14" />
+          </div>
+          <div class="ctrl ctrl__actions">
+            <button class="btn btn--full" id="dSave">Save design</button>
+            <button class="btn btn--ghost" id="dReset">Reset to default</button>
+          </div>
+          <p class="msg" id="dMsg"></p>
+        </div>
+        <div class="design__preview">
+          <span class="design__previewlabel">Live preview</span>
+          <div class="design__frame">
+            <iframe id="dFrame" src="/" title="Live preview" loading="lazy"></iframe>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- LIST -->
     <section class="panel">
       <h2 class="panel__title">Manage works <span class="count" id="count">0</span></h2>
@@ -90,6 +147,7 @@
     </section>
   </main>
 
-  <script src="admin.js"></script>
+  <script src="/js/theme.js?v=4"></script>
+  <script src="/admin/admin.js?v=4"></script>
 </body>
 </html>

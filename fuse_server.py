@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys
 """
 FUSE Portfolio — backend + admin + API (pure Python standard library).
 
@@ -30,6 +31,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 MEDIA_DIR = os.path.join(BASE, "media")
 DATA_DIR = os.path.join(BASE, "data")
 DATA_FILE = os.path.join(DATA_DIR, "projects.json")
+DESIGN_FILE = os.path.join(DATA_DIR, "design.json")
 
 PORT = int(os.environ.get("FUSE_PORT", "8080"))
 PASSWORD = os.environ.get("FUSE_ADMIN_PASSWORD", "fuse-admin")
@@ -44,8 +46,27 @@ CATEGORIES = ["content", "branding", "keyvisual", "packaging", "retouching"]
 os.makedirs(MEDIA_DIR, exist_ok=True)
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# in-memory set of valid auth tokens (reset when the server restarts)
-TOKENS = set()
+# auth tokens — persisted to disk so a server restart doesn't log you out
+TOKENS_FILE = os.path.join(DATA_DIR, "tokens.json")
+
+
+def _load_tokens():
+    try:
+        with open(TOKENS_FILE, "r", encoding="utf-8") as f:
+            return set(json.load(f))
+    except Exception:
+        return set()
+
+
+def _save_tokens():
+    try:
+        with open(TOKENS_FILE, "w", encoding="utf-8") as f:
+            json.dump(list(TOKENS), f)
+    except Exception:
+        pass
+
+
+TOKENS = _load_tokens()
 
 
 # ---------- data store ----------
@@ -64,6 +85,23 @@ def save_projects(items):
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(items, f, indent=2, ensure_ascii=False)
     os.replace(tmp, DATA_FILE)
+
+
+def load_design():
+    if not os.path.exists(DESIGN_FILE):
+        return {}
+    try:
+        with open(DESIGN_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def save_design(obj):
+    tmp = DESIGN_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(obj, f, indent=2, ensure_ascii=False)
+    os.replace(tmp, DESIGN_FILE)
 
 
 def media_type_for(ext):
@@ -181,6 +219,8 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/projects":
             return self._json(200, load_projects())
+        if path == "/api/design":
+            return self._json(200, load_design())
         if path == "/api/health":
             return self._json(200, {"ok": True, "count": len(load_projects())})
 
@@ -202,6 +242,7 @@ class Handler(BaseHTTPRequestHandler):
             auth = self.headers.get("Authorization", "")
             if auth.startswith("Bearer "):
                 TOKENS.discard(auth[7:])
+                _save_tokens()
             return self._json(200, {"ok": True})
         if path == "/api/projects":
             return self._handle_upload()
@@ -210,6 +251,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_PUT(self):
         path = unquote(urlparse(self.path).path)
+        if path == "/api/design":
+            return self._handle_design_save()
         m = re.match(r"^/api/projects/([\w-]+)$", path)
         if m:
             return self._handle_update(m.group(1))
@@ -237,6 +280,7 @@ class Handler(BaseHTTPRequestHandler):
         if data.get("password") == PASSWORD:
             token = secrets.token_hex(24)
             TOKENS.add(token)
+            _save_tokens()
             return self._json(200, {"token": token})
         return self._json(401, {"error": "Wrong password"})
 
@@ -321,6 +365,39 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, it)
         return self._json(404, {"error": "Project not found"})
 
+    def _handle_design_save(self):
+        if not self._require_auth():
+            return
+        data = self._read_json_body()
+        clean = {}
+
+        def hexcolor(v):
+            return bool(isinstance(v, str) and re.match(r"^#[0-9a-fA-F]{3,8}$", v))
+
+        if hexcolor(data.get("accent")):
+            clean["accent"] = data["accent"]
+        if hexcolor(data.get("bg")):
+            clean["bg"] = data["bg"]
+        if hexcolor(data.get("text")):
+            clean["text"] = data["text"]
+        for key in ("headingFont", "bodyFont"):
+            v = data.get(key)
+            if isinstance(v, str) and 0 < len(v) <= 60 and re.match(r"^[\w '\-]+$", v):
+                clean[key] = v.strip()
+        try:
+            ts = float(data.get("typeScale", 1))
+            clean["typeScale"] = max(0.7, min(1.5, round(ts, 3)))
+        except (TypeError, ValueError):
+            pass
+        if "radius" in data:
+            try:
+                clean["radius"] = max(0, min(40, int(data["radius"])))
+            except (TypeError, ValueError):
+                pass
+
+        save_design(clean)
+        return self._json(200, clean)
+
     def _handle_delete(self, pid):
         if not self._require_auth():
             return
@@ -344,7 +421,7 @@ class Handler(BaseHTTPRequestHandler):
         return self._json(200, {"ok": True, "deleted": pid})
 
     def log_message(self, fmt, *args):
-        pass
+        sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
 
 
 def main():

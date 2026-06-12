@@ -17,6 +17,10 @@
   --font-display: "Unbounded", "Space Grotesk", sans-serif;
   --font-body: "Space Grotesk", system-ui, sans-serif;
 
+  /* customisable via the admin Design panel */
+  --type-scale: 1;
+  --card-radius: 14px;
+
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --pad: clamp(1.25rem, 5vw, 6rem);
 }
@@ -116,7 +120,7 @@ mark { background: var(--chartreuse); color: #000; padding: 0 0.12em; }
 }
 .hero__title {
   font-family: var(--font-display); font-weight: 800;
-  font-size: clamp(2.4rem, 8.5vw, 8.2rem); line-height: 0.98;
+  font-size: calc(clamp(2.4rem, 8.5vw, 8.2rem) * var(--type-scale)); line-height: 0.98;
   letter-spacing: -0.04em; text-transform: uppercase;
 }
 .hero__title .line { display: block; overflow: hidden; }
@@ -165,7 +169,7 @@ mark { background: var(--chartreuse); color: #000; padding: 0 0.12em; }
 }
 .section-head__title {
   font-family: var(--font-display); font-weight: 800; text-transform: uppercase;
-  font-size: clamp(2rem, 6vw, 5rem); line-height: 1; letter-spacing: -0.03em; margin: 0.5rem 0 0.6rem;
+  font-size: calc(clamp(2rem, 6vw, 5rem) * var(--type-scale)); line-height: 1; letter-spacing: -0.03em; margin: 0.5rem 0 0.6rem;
 }
 .section-head__title em { color: var(--chartreuse); }
 .section-head__sub { color: var(--grey); max-width: 50ch; }
@@ -187,7 +191,7 @@ mark { background: var(--chartreuse); color: #000; padding: 0 0.12em; }
   padding: 0 var(--pad) clamp(4rem, 10vh, 8rem);
 }
 .card {
-  grid-column: span 6; position: relative; overflow: hidden; border-radius: 14px;
+  grid-column: span 6; position: relative; overflow: hidden; border-radius: var(--card-radius);
   aspect-ratio: 16 / 11; cursor: pointer; background: var(--grey-2);
   transition: transform 0.5s var(--ease), opacity 0.4s var(--ease);
 }
@@ -242,7 +246,7 @@ mark { background: var(--chartreuse); color: #000; padding: 0 0.12em; }
 }
 .svc__title {
   font-family: var(--font-display); font-weight: 800; text-transform: uppercase;
-  font-size: clamp(1.35rem, 1.9vw, 2rem); line-height: 1.04; letter-spacing: -0.03em;
+  font-size: calc(clamp(1.35rem, 1.9vw, 2rem) * var(--type-scale)); line-height: 1.04; letter-spacing: -0.03em;
   margin-bottom: 1.1rem;
 }
 .svc__title .y { color: var(--chartreuse); }
@@ -280,7 +284,7 @@ mark { background: var(--chartreuse); color: #000; padding: 0 0.12em; }
 .contact__index { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--chartreuse); }
 .contact__title {
   font-family: var(--font-display); font-weight: 800; text-transform: uppercase;
-  font-size: clamp(2rem, 6.5vw, 5.5rem); line-height: 1; letter-spacing: -0.03em; margin: 1rem 0 2rem;
+  font-size: calc(clamp(2rem, 6.5vw, 5.5rem) * var(--type-scale)); line-height: 1; letter-spacing: -0.03em; margin: 1rem 0 2rem;
 }
 .contact__mail {
   font-family: var(--font-display); font-weight: 700; font-size: clamp(1.2rem, 3.2vw, 2.4rem);
@@ -307,8 +311,22 @@ mark { background: var(--chartreuse); color: #000; padding: 0 0.12em; }
 
 /* ---------- RESPONSIVE ---------- */
 @media (max-width: 860px) {
-  .nav__links { display: none; }
-  .nav__burger { display: flex; }
+  .nav { mix-blend-mode: normal; }
+  .nav__burger { display: flex; z-index: 2; }
+  /* slide-down mobile menu */
+  .nav__links {
+    position: absolute; top: 100%; left: 0; right: 0;
+    flex-direction: column; align-items: flex-start; gap: 1.4rem;
+    background: rgba(5, 5, 5, 0.97); backdrop-filter: blur(16px);
+    padding: 1.6rem var(--pad) 2rem; border-bottom: 1px solid var(--line);
+    transform: translateY(-12px); opacity: 0; pointer-events: none;
+    transition: transform 0.35s var(--ease), opacity 0.3s var(--ease);
+    display: flex;
+  }
+  .nav.open .nav__links { transform: none; opacity: 1; pointer-events: auto; }
+  .nav__links a { font-size: 1rem; }
+  .nav.open .nav__burger span:first-child { transform: translateY(3.5px) rotate(45deg); }
+  .nav.open .nav__burger span:last-child { transform: translateY(-3.5px) rotate(-45deg); }
   .card, .card.span-4, .card.span-8 { grid-column: span 6; aspect-ratio: 4/3; }
   .svc-grid { grid-template-columns: repeat(2, 1fr); row-gap: clamp(2rem, 5vh, 3rem); }
   .hero__meta { flex-direction: column; align-items: flex-start; }
@@ -317,6 +335,7 @@ mark { background: var(--chartreuse); color: #000; padding: 0 0.12em; }
   .card, .card.span-4, .card.span-8 { grid-column: span 12; }
   .svc-grid { grid-template-columns: 1fr; }
   .hero__stats { flex-wrap: wrap; gap: 1.2rem 2rem; }
+  .hero__meta { gap: 1.6rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; scroll-behavior: auto; }

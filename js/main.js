@@ -129,6 +129,13 @@ burger.addEventListener("click", () => {
   const open = nav.classList.toggle("open");
   burger.setAttribute("aria-expanded", open);
 });
+// close the mobile menu after tapping a link
+document.querySelectorAll(".nav__links a").forEach((a) =>
+  a.addEventListener("click", () => {
+    nav.classList.remove("open");
+    burger.setAttribute("aria-expanded", "false");
+  })
+);
 
 /* ---- Kick off reveal observer for any remaining elements ---- */
 observeReveals();

@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FUSE RADAR — The Creative Opportunity Radar</title>
+<meta name="description" content="FUSE RADAR — a premium trend radar platform that tracks cultural, design, media, AI, retail and production signals and translates them into creative opportunities." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: '#050505',
+          panel: '#0a0a0b',
+          panel2: '#101013',
+          line: 'rgba(255,255,255,0.09)',
+          paper: '#f4f4ef',
+          muted: '#8c8c86',
+          chartreuse: '#d4ff00',
+          neon: '#00ff9d',
+          pink: '#ff2d78',
+          orange: '#ff4d2e',
+          cyan: '#22e0ff',
+        },
+        fontFamily: {
+          display: ['Unbounded', 'sans-serif'],
+          body: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'monospace'],
+        },
+      },
+    },
+  };
+</script>
+
+<style>
+  html { scroll-behavior: smooth; }
+  body { background: #050505; color: #f4f4ef; font-family: "Space Grotesk", system-ui, sans-serif; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+  ::selection { background: #d4ff00; color: #000; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: #0a0a0b; }
+  ::-webkit-scrollbar-thumb { background: #1c1c20; border-radius: 8px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2a2a30; }
+
+  /* film grain */
+  .grain { position: fixed; inset: 0; z-index: 9998; pointer-events: none; opacity: 0.045; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  /* scanlines */
+  .scanlines { position: fixed; inset: 0; z-index: 9997; pointer-events: none; opacity: 0.5;
+    background: repeating-linear-gradient(180deg, rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px, transparent 1px, transparent 3px); }
+  /* dotted grid backdrop */
+  .gridbg { background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 26px 26px; }
+
+  /* radar sweep */
+  @keyframes sweep { to { transform: rotate(360deg); } }
+  .radar-sweep { animation: sweep 4s linear infinite; transform-origin: center; }
+  @keyframes pulse-dot { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.55); opacity: 0.55; } }
+  @keyframes ring-pulse { 0% { transform: scale(0.4); opacity: 0.7; } 100% { transform: scale(2.4); opacity: 0; } }
+  .ring-pulse { animation: ring-pulse 3s ease-out infinite; }
+  @keyframes float-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  .float-up { animation: float-up 0.6s cubic-bezier(0.16,1,0.3,1) both; }
+  @keyframes twinkle { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.82); } }
+  .spark { animation: twinkle 3.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes blink { 50% { opacity: 0.25; } }
+  .blink { animation: blink 1.4s steps(1) infinite; }
+
+  .card-grad { background: linear-gradient(155deg, #131316 0%, #0a0a0b 78%); }
+  .glow-y { box-shadow: 0 0 0 1px rgba(212,255,0,0.35), 0 0 32px -8px rgba(212,255,0,0.45); }
+  .text-glow-y { text-shadow: 0 0 22px rgba(212,255,0,0.55); }
+  .hoverlift { transition: transform .45s cubic-bezier(.16,1,.3,1), border-color .35s, box-shadow .35s; }
+  .hoverlift:hover { transform: translateY(-5px); border-color: rgba(212,255,0,0.45); box-shadow: 0 18px 50px -22px rgba(0,0,0,0.9), 0 0 26px -14px rgba(212,255,0,0.55); }
+
+  [data-view] { animation: float-up 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="scanlines"></div>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo } = React;
+
+/* ============================================================
+   MOCK DATA
+   ============================================================ */
+const CATEGORIES = ["All","Culture","AI","Retail","Design","Media","Production","FMCG"];
+
+const STATUS_META = {
+  Emerging:   { color: "cyan",       dot: "#22e0ff" },
+  Growing:    { color: "neon",       dot: "#00ff9d" },
+  Mainstream: { color: "chartreuse", dot: "#d4ff00" },
+  Declining:  { color: "orange",     dot: "#ff4d2e" },
+};
+
+const TRENDS = [
+  { id:"collectible-packaging", name:"Collectible Packaging", category:"Design", status:"Growing", opportunity:88, relevance:91, horizon:"Now",
+    blurb:"Packaging becomes the keepsake — limited drops, numbered editions and shelf objects people refuse to throw away.",
+    radar:{ angle:32, radius:0.52 } },
+  { id:"ai-companion", name:"AI Companion", category:"AI", status:"Emerging", opportunity:94, relevance:86, horizon:"6 months",
+    blurb:"Always-on brand intelligences that hold context, personality and memory across every customer touchpoint.",
+    radar:{ angle:150, radius:0.78 } },
+  { id:"live-commerce", name:"Live Commerce", category:"Retail", status:"Mainstream", opportunity:74, relevance:80, horizon:"Now",
+    blurb:"Shoppable live theatre — entertainment, scarcity and one-tap checkout fused into a single broadcast.",
+    radar:{ angle:255, radius:0.40 } },
+  { id:"retail-theatre", name:"Retail Theatre", category:"Retail", status:"Growing", opportunity:81, relevance:77, horizon:"6 months",
+    blurb:"Stores as stage sets — physical space designed for performance, ritual and the camera, not just transactions.",
+    radar:{ angle:200, radius:0.62 } },
+  { id:"synthetic-influencer", name:"Synthetic Influencer", category:"AI", status:"Emerging", opportunity:79, relevance:72, horizon:"12 months",
+    blurb:"Brand-owned virtual talent — fully controllable, infinitely scalable faces with their own cultural footprint.",
+    radar:{ angle:88, radius:0.86 } },
+  { id:"low-pressure-joy", name:"Low-Pressure Joy", category:"Culture", status:"Growing", opportunity:84, relevance:89, horizon:"Now",
+    blurb:"A cultural turn toward soft, unserious, anti-optimisation delight — permission to do things just because.",
+    radar:{ angle:312, radius:0.46 } },
+  { id:"craft-revival", name:"Hyper-Craft Revival", category:"Production", status:"Growing", opportunity:76, relevance:83, horizon:"6 months",
+    blurb:"Visible human hands as the new luxury signal — imperfection, slowness and process become the product.",
+    radar:{ angle:18, radius:0.70 } },
+  { id:"ambient-media", name:"Ambient Media", category:"Media", status:"Emerging", opportunity:82, relevance:75, horizon:"12 months",
+    blurb:"Content designed to live in the background of life — calm, glanceable, never demanding the full screen.",
+    radar:{ angle:122, radius:0.55 } },
+  { id:"functional-fizz", name:"Functional Fizz", category:"FMCG", status:"Mainstream", opportunity:71, relevance:78, horizon:"Now",
+    blurb:"Drinks that do a job — mood, focus, gut, sleep — wrapped in design that out-shouts legacy soda.",
+    radar:{ angle:240, radius:0.30 } },
+  { id:"deinfluencing", name:"De-Influencing", category:"Culture", status:"Declining", opportunity:58, relevance:64, horizon:"Now",
+    blurb:"The backlash against buy-it-all content — talent building trust by telling you what NOT to purchase.",
+    radar:{ angle:285, radius:0.74 } },
+  { id:"prompt-native-design", name:"Prompt-Native Design", category:"AI", status:"Growing", opportunity:90, relevance:85, horizon:"6 months",
+    blurb:"Visual systems built to be generated, remixed and infinitely versioned — design as a living model, not a file.",
+    radar:{ angle:65, radius:0.40 } },
+  { id:"phygital-loyalty", name:"Phygital Loyalty", category:"Retail", status:"Emerging", opportunity:77, relevance:70, horizon:"12 months",
+    blurb:"Physical objects that unlock digital status — keys, tokens and collectibles that bridge shelf and screen.",
+    radar:{ angle:170, radius:0.34 } },
+];
+
+const TREND_DETAIL = {
+  "collectible-packaging": {
+    happening: [
+      "Limited-run, numbered and serialised packaging is migrating from luxury into FMCG and beauty.",
+      "Resale and unboxing communities now assign secondary value to the box itself, not just the product.",
+      "Brands ship 'keep-me' formats — tins, sculptural caps, refill-ready vessels — built to stay on the shelf.",
+    ],
+    matters: "Packaging is shifting from cost-of-goods to owned media. A collectible format earns repeat photography, resale visibility and emotional ownership — turning a one-time purchase into an ongoing relationship and a reason to pay a premium.",
+    evidence: [
+      { label:"Search interest", value:"+142% YoY", note:"'collectible packaging' & 'keepsake box'" },
+      { label:"Resale listings", value:"3.4×", note:"empty-vessel listings vs. last cycle" },
+      { label:"UGC volume", value:"+88%", note:"unboxing reels mentioning the packaging" },
+      { label:"Premium uplift", value:"+19%", note:"willingness to pay for limited formats" },
+    ],
+    opportunity: "Design packaging as a collectible system — numbered drops, seasonal artist editions and a refill architecture — so the container outlives the contents and pulls customers back for the next release.",
+    executions: [
+      "Numbered artist-edition series with a visible run count on-pack.",
+      "Refill ecosystem: keep the vessel, subscribe to the contents.",
+      "Scannable on-pack token that unlocks a digital twin / membership.",
+      "Retail 'collection wall' merchandising that rewards completion.",
+      "Limited seasonal drops announced like sneaker releases.",
+    ],
+    bestFor: ["Beauty","FMCG","Spirits","Confectionery","Fragrance"],
+    pov: "Don't design a box to be opened — design an object to be owned. The brands winning here treat packaging as the first edition of a long collection, not the wrapper on a single sale. FUSE builds the system, the drop calendar and the craft that makes people keep it.",
+  },
+};
+
+const PICKS = [
+  { id:1, campaign:"The Refill Library", brand:"AESOP", country:"AU", score:94,
+    why:"Turned restocking into a ritual — a tactile, low-pressure retail moment that doubles as brand theatre.",
+    tags:["Retail Theatre","Hyper-Craft","Loyalty"], accent:"chartreuse" },
+  { id:2, campaign:"Synthetic Sister", brand:"PRADA BEAUTY", country:"IT", score:91,
+    why:"A brand-owned virtual face used with restraint and taste — innovation that still feels editorial, not gimmick.",
+    tags:["Synthetic Influencer","AI","Luxury"], accent:"pink" },
+  { id:3, campaign:"Numbered Drop No.7", brand:"OATLY", country:"SE", score:89,
+    why:"Carton as collectible. A throwaway format became a thing people queued for and kept.",
+    tags:["Collectible Packaging","FMCG","Drop"], accent:"neon" },
+  { id:4, campaign:"Quiet Hours", brand:"IKEA", country:"SE", score:87,
+    why:"Leaned all the way into low-pressure joy — a campaign that asked nothing and earned everything.",
+    tags:["Low-Pressure Joy","Culture","Ambient"], accent:"cyan" },
+  { id:5, campaign:"Live From The Floor", brand:"SEPHORA", country:"FR", score:85,
+    why:"Live commerce done as genuine entertainment — talent-led, shoppable, and actually fun to watch.",
+    tags:["Live Commerce","Retail","Media"], accent:"orange" },
+  { id:6, campaign:"Made By Hand, On Camera", brand:"HERMÈS", country:"FR", score:92,
+    why:"Slow craft as the entire creative — process became the product and the proof of value.",
+    tags:["Hyper-Craft","Production","Luxury"], accent:"chartreuse" },
+];
+
+const SCORE_CRITERIA = [
+  { name:"Creativity", weight:20, accent:"chartreuse", desc:"Originality of idea and the strength of the creative leap.", icon:"✶" },
+  { name:"Craft", weight:18, accent:"paper", desc:"Execution quality — finish, detail and production excellence.", icon:"◆" },
+  { name:"Cultural Relevance", weight:18, accent:"pink", desc:"How sharply it taps a live cultural tension or movement.", icon:"◉" },
+  { name:"Business Potential", weight:16, accent:"neon", desc:"Commercial upside and clarity of the brand opportunity.", icon:"▲" },
+  { name:"AI / Innovation", weight:16, accent:"cyan", desc:"Inventive use of AI, tech or new production methods.", icon:"⬡" },
+  { name:"Scalability", weight:12, accent:"orange", desc:"How well the idea travels across markets and formats.", icon:"⤧" },
+];
+
+const INDUSTRIES = ["FMCG","Beauty","Retail","Auto","Banking","Healthcare"];
+
+const TRANSLATIONS = {
+  FMCG: { headline:"Limited-edition collectible packaging system", play:"Launch a numbered seasonal carton designed to be kept, photographed and refilled — sold like a drop, merchandised like a collection.", kpi:"Repeat purchase + premium uplift", effort:"Medium" },
+  Beauty: { headline:"Refillable keepsake vessels as the hero SKU", play:"Make the bottle the collectible: heavyweight, artist-edition, refill-native — the empty is worth keeping and worth posting.", kpi:"Subscription refill rate", effort:"Medium" },
+  Retail: { headline:"A 'collection wall' that rewards completion", play:"Merchandise the range as a set to be completed in-store, with a physical token that unlocks member status.", kpi:"Basket size + footfall", effort:"High" },
+  Auto: { headline:"Owner-edition physical artifacts", play:"Ship a numbered, craft-built object with every car — a key fob or scale piece that signals belonging to an edition.", kpi:"Owner advocacy / referrals", effort:"Low" },
+  Banking: { headline:"Tiered collectible card design drops", play:"Treat the physical card as a status object — limited metal finishes and artist series that customers choose to display.", kpi:"Tier upgrade rate", effort:"Low" },
+  Healthcare: { headline:"Keep-me adherence packaging", play:"Design daily-format packaging that's pleasant to keep on the counter — turning a routine into a small ritual people stick to.", kpi:"Adherence / refill", effort:"Medium" },
+};
+
+const REPORTS = [
+  { id:"monthly", title:"Monthly Radar Report", fmt:"PDF · 24 pages", desc:"The full month of signals, status moves and the trends we're upgrading or retiring.", accent:"chartreuse", icon:"◎", time:"~30s" },
+  { id:"client", title:"Client Category Report", fmt:"PDF · tailored", desc:"Filtered to one client's categories with relevance scoring and three priority plays.", accent:"cyan", icon:"▤", time:"~45s" },
+  { id:"carousel", title:"LinkedIn Carousel", fmt:"10 slides · 1080²", desc:"A scroll-stopping thought-leadership carousel built from this month's sharpest signal.", accent:"pink", icon:"❖", time:"~20s" },
+  { id:"deck", title:"Presentation Deck", fmt:"Keynote · 16:9", desc:"Agency-grade pitch deck translating a trend into a brand opportunity story.", accent:"neon", icon:"▰", time:"~60s" },
+  { id:"newsletter", title:"Newsletter", fmt:"HTML email", desc:"A tight, editorial dispatch of the top five signals ready to send to subscribers.", accent:"orange", icon:"✉", time:"~15s" },
+];
+
+const accentHex = { chartreuse:"#d4ff00", neon:"#00ff9d", pink:"#ff2d78", orange:"#ff4d2e", cyan:"#22e0ff", paper:"#f4f4ef" };
+
+/* ============================================================
+   SMALL UI PRIMITIVES
+   ============================================================ */
+function Logo({ size=26 }) {
+  const gid = "chrome-" + React.useId().replace(/:/g,"");
+  return (
+    <svg viewBox="0 0 332 46" style={{ height:size }} role="img" aria-label="FUSE RADAR" className="overflow-visible">
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff"/><stop offset="0.32" stopColor="#e8e8e8"/>
+          <stop offset="0.5" stopColor="#9a9a9a"/><stop offset="0.62" stopColor="#6c6c6c"/>
+          <stop offset="0.8" stopColor="#fbfbfb"/><stop offset="1" stopColor="#c9c9c9"/>
+        </linearGradient>
+      </defs>
+      <text x="0" y="36" fontFamily="Unbounded" fontWeight="800" fontSize="38" letterSpacing="-1" fill={`url(#${gid})`}>FUSE</text>
+      <path className="spark" fill="#d4ff00" d="M141 6 C143 16 145 18 155 20 C145 22 143 24 141 34 C139 24 137 22 127 20 C137 18 139 16 141 6 Z"/>
+      <text x="162" y="36" fontFamily="Unbounded" fontWeight="800" fontSize="38" letterSpacing="-1" fill="#d4ff00" className="text-glow-y">RADAR</text>
+    </svg>
+  );
+}
+
+function StatusPill({ status }) {
+  const m = STATUS_META[status];
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest"
+          style={{ color:m.dot }}>
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background:m.dot, boxShadow:`0 0 8px ${m.dot}` }}></span>
+      {status}
+    </span>
+  );
+}
+
+function ScoreBar({ value, color="#d4ff00", label }) {
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-muted">
+        <span>{label}</span><span style={{ color }}>{value}</span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+        <div className="h-full rounded-full" style={{ width:`${value}%`, background:color, boxShadow:`0 0 10px ${color}` }}></div>
+      </div>
+    </div>
+  );
+}
+
+function SectionLabel({ children, n }) {
+  return (
+    <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.3em] text-muted">
+      {n && <span className="text-chartreuse">{n}</span>}
+      <span className="h-px w-8 bg-chartreuse/60"></span>
+      {children}
+    </div>
+  );
+}
+
+/* ============================================================
+   RADAR (hero visual)
+   ============================================================ */
+function Radar({ trends, onSelect, compact=false }) {
+  const size = 100; // viewBox units, center 50,50
+  const cx = 50, cy = 50, R = 44;
+  const rings = [0.28, 0.55, 0.82, 1];
+  return (
+    <div className="relative aspect-square w-full">
+      {/* glow backdrop */}
+      <div className="absolute inset-0 rounded-full" style={{ background:"radial-gradient(circle, rgba(212,255,0,0.10), transparent 62%)" }}></div>
+
+      <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
+        <defs>
+          <radialGradient id="sweepg" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgba(212,255,0,0.0)"/>
+            <stop offset="70%" stopColor="rgba(212,255,0,0.0)"/>
+            <stop offset="100%" stopColor="rgba(212,255,0,0.35)"/>
+          </radialGradient>
+          <clipPath id="rclip"><circle cx="50" cy="50" r={R}/></clipPath>
+        </defs>
+
+        {rings.map((r,i)=>(
+          <circle key={i} cx={cx} cy={cy} r={R*r} fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="0.3"/>
+        ))}
+        {/* crosshairs */}
+        <line x1={cx} y1={cy-R} x2={cx} y2={cy+R} stroke="rgba(255,255,255,0.08)" strokeWidth="0.3"/>
+        <line x1={cx-R} y1={cy} x2={cx+R} y2={cy} stroke="rgba(255,255,255,0.08)" strokeWidth="0.3"/>
+        <line x1={cx-R*0.7} y1={cy-R*0.7} x2={cx+R*0.7} y2={cy+R*0.7} stroke="rgba(255,255,255,0.05)" strokeWidth="0.3"/>
+        <line x1={cx-R*0.7} y1={cy+R*0.7} x2={cx+R*0.7} y2={cy-R*0.7} stroke="rgba(255,255,255,0.05)" strokeWidth="0.3"/>
+
+        {/* sweep */}
+        <g clipPath="url(#rclip)">
+          <g className="radar-sweep" style={{ transformOrigin:"50px 50px" }}>
+            <path d={`M50 50 L50 ${50-R} A${R} ${R} 0 0 1 ${50+R} 50 Z`} fill="url(#sweepg)"/>
+            <line x1="50" y1="50" x2="50" y2={50-R} stroke="rgba(212,255,0,0.7)" strokeWidth="0.4"/>
+          </g>
+        </g>
+        <circle cx={cx} cy={cy} r="1.1" fill="#d4ff00"/>
+      </svg>
+
+      {/* dots + labels */}
+      {trends.map((t)=>{
+        const a = (t.radar.angle-90) * Math.PI/180;
+        const rr = t.radar.radius;
+        const px = 50 + Math.cos(a)*R*rr;
+        const py = 50 + Math.sin(a)*R*rr;
+        const dot = STATUS_META[t.status].dot;
+        const right = px > 50;
+        return (
+          <button key={t.id} onClick={()=>onSelect && onSelect(t)}
+            className="group absolute -translate-x-1/2 -translate-y-1/2"
+            style={{ left:`${px}%`, top:`${py}%` }}>
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-pulse"
+                  style={{ width:18, height:18, border:`1px solid ${dot}` }}></span>
+            <span className="relative block rounded-full" style={{ width:9, height:9, background:dot, boxShadow:`0 0 12px ${dot}`, animation:"pulse-dot 2.6s ease-in-out infinite" }}></span>
+            {!compact &&
+              <span className={"pointer-events-none absolute top-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[10px] uppercase tracking-wider transition-all duration-300 group-hover:text-paper " + (right ? "left-4 text-left" : "right-4 text-right")}
+                    style={{ color:"rgba(244,244,239,0.7)" }}>
+                {t.name}
+              </span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+const NAV = [
+  { id:"home", label:"Radar", n:"01" },
+  { id:"dashboard", label:"Dashboard", n:"02" },
+  { id:"picks", label:"FUSE Picks", n:"03" },
+  { id:"translator", label:"Translator", n:"04" },
+  { id:"score", label:"Score System", n:"05" },
+  { id:"reports", label:"Reports", n:"06" },
+];
+
+function Sidebar({ view, go, open, setOpen }) {
+  const [time, setTime] = useState("");
+  useEffect(()=>{
+    const t = setInterval(()=> setTime(new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit",second:"2-digit"})), 1000);
+    setTime(new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit",second:"2-digit"}));
+    return ()=>clearInterval(t);
+  },[]);
+  return (
+    <>
+      {/* mobile top bar */}
+      <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-between border-b border-line bg-ink/85 px-5 py-3 backdrop-blur-xl lg:hidden">
+        <button onClick={()=>go("home")}><Logo size={20}/></button>
+        <button onClick={()=>setOpen(!open)} className="font-mono text-xs uppercase tracking-widest text-chartreuse">{open?"Close":"Menu"}</button>
+      </div>
+
+      <aside className={"fixed z-40 flex h-screen w-[240px] flex-col border-r border-line bg-panel/70 backdrop-blur-xl transition-transform duration-300 lg:translate-x-0 "+(open?"translate-x-0":"-translate-x-full")}>
+        <button onClick={()=>{go("home");setOpen(false);}} className="border-b border-line px-6 py-6 text-left">
+          <Logo size={20}/>
+          <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.28em] text-muted">Creative Opportunity Radar</p>
+        </button>
+
+        <nav className="flex-1 px-3 py-6">
+          {NAV.map(item=>{
+            const active = view===item.id || (view==="detail" && item.id==="dashboard");
+            return (
+              <button key={item.id} onClick={()=>{go(item.id);setOpen(false);}}
+                className={"group relative mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors "+(active?"bg-white/[0.05]":"hover:bg-white/[0.03]")}>
+                {active && <span className="absolute left-0 top-1/2 h-5 -translate-y-1/2 w-[3px] rounded-r bg-chartreuse" style={{boxShadow:"0 0 10px #d4ff00"}}></span>}
+                <span className={"font-mono text-[10px] "+(active?"text-chartreuse":"text-muted")}>{item.n}</span>
+                <span className={"font-display text-sm font-semibold "+(active?"text-paper":"text-muted group-hover:text-paper")}>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="border-t border-line px-6 py-5">
+          <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-neon">
+            <span className="h-1.5 w-1.5 rounded-full bg-neon blink" style={{boxShadow:"0 0 8px #00ff9d"}}></span> Live signal
+          </div>
+          <div className="font-mono text-[11px] text-muted">SYS · {time}</div>
+          <div className="font-mono text-[11px] text-muted">{TRENDS.length} trends tracked</div>
+        </div>
+      </aside>
+      {open && <div onClick={()=>setOpen(false)} className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden"></div>}
+    </>
+  );
+}
+
+/* ============================================================
+   PAGE 01 — HERO
+   ============================================================ */
+function Hero({ go, openTrend }) {
+  const heroTrends = TRENDS.slice(0,6);
+  return (
+    <div data-view className="relative min-h-screen overflow-hidden gridbg">
+      <div className="absolute -left-40 top-10 h-96 w-96 rounded-full opacity-30 blur-[120px]" style={{background:"radial-gradient(circle,#d4ff00,transparent)"}}></div>
+      <div className="absolute -right-32 bottom-0 h-96 w-96 rounded-full opacity-20 blur-[120px]" style={{background:"radial-gradient(circle,#22e0ff,transparent)"}}></div>
+
+      <div className="relative grid min-h-screen items-center gap-10 px-6 py-24 lg:grid-cols-2 lg:px-16 lg:py-0">
+        {/* left */}
+        <div className="float-up">
+          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-line bg-white/[0.03] px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.25em] text-chartreuse">
+            <span className="h-1.5 w-1.5 rounded-full bg-chartreuse blink"></span> Q2 / 2026 · Signal feed online
+          </div>
+          <h1 className="font-display text-[15vw] font-extrabold leading-[0.86] tracking-tight sm:text-7xl lg:text-[5.4rem]">
+            FUSE<br/><span className="text-chartreuse text-glow-y">RADAR</span>
+          </h1>
+          <p className="mt-7 max-w-md text-lg leading-relaxed text-muted">
+            The Creative Opportunity Radar for <span className="text-paper">brands, culture, AI</span> and <span className="text-paper">production</span>. We track the signal — and translate it into the next move.
+          </p>
+          <div className="mt-9 flex flex-wrap gap-3">
+            <button onClick={()=>go("dashboard")}
+              className="group inline-flex items-center gap-2 rounded-full bg-chartreuse px-7 py-3.5 font-display text-sm font-bold text-black transition-all hover:gap-3 hover:shadow-[0_0_30px_-4px_#d4ff00]">
+              Explore Trends <span className="transition-transform group-hover:translate-x-1">→</span>
+            </button>
+            <button onClick={()=>go("picks")}
+              className="inline-flex items-center gap-2 rounded-full border border-line px-7 py-3.5 font-display text-sm font-bold text-paper transition-colors hover:border-chartreuse hover:text-chartreuse">
+              View FUSE Picks
+            </button>
+          </div>
+
+          <div className="mt-12 grid max-w-md grid-cols-3 gap-6 border-t border-line pt-7">
+            {[["12","Live trends"],["6","Categories"],["48","Signals / mo"]].map(([n,l])=>(
+              <div key={l}>
+                <div className="font-display text-3xl font-extrabold text-paper">{n}</div>
+                <div className="mt-1 font-mono text-[10px] uppercase tracking-widest text-muted">{l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* right radar */}
+        <div className="relative mx-auto w-full max-w-[520px]">
+          <div className="absolute -top-3 left-0 font-mono text-[10px] uppercase tracking-widest text-muted">RADAR · LIVE</div>
+          <div className="absolute -top-3 right-0 font-mono text-[10px] uppercase tracking-widest text-chartreuse">SWEEP ACTIVE</div>
+          <Radar trends={heroTrends} onSelect={openTrend}/>
+          <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-widest text-muted">Tap a signal to open the trend ↗</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   PAGE 02 — DASHBOARD
+   ============================================================ */
+function Dashboard({ openTrend }) {
+  const [filter, setFilter] = useState("All");
+  const list = useMemo(()=> filter==="All" ? TRENDS : TRENDS.filter(t=>t.category===filter), [filter]);
+
+  return (
+    <div data-view className="px-6 py-20 lg:px-14 lg:py-16">
+      <SectionLabel n="02">Radar Dashboard</SectionLabel>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h2 className="font-display text-4xl font-extrabold lg:text-5xl">The board.</h2>
+        <p className="max-w-xs text-sm text-muted">Every live signal, scored for opportunity and relevance. Filter by category to focus the radar.</p>
+      </div>
+
+      {/* filter tabs */}
+      <div className="mt-9 flex flex-wrap gap-2">
+        {CATEGORIES.map(c=>(
+          <button key={c} onClick={()=>setFilter(c)}
+            className={"rounded-full border px-4 py-2 font-mono text-[11px] uppercase tracking-widest transition-all "+
+              (filter===c ? "border-chartreuse bg-chartreuse text-black" : "border-line text-muted hover:border-paper/40 hover:text-paper")}>
+            {c}{c!=="All" && <span className="ml-1.5 opacity-60">{TRENDS.filter(t=>t.category===c).length}</span>}
+          </button>
+        ))}
+      </div>
+
+      {/* cards */}
+      <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        {list.map((t,i)=>(
+          <button key={t.id} onClick={()=>openTrend(t)}
+            className="card-grad hoverlift group rounded-2xl border border-line p-6 text-left float-up"
+            style={{ animationDelay:`${i*40}ms` }}>
+            <div className="flex items-start justify-between">
+              <StatusPill status={t.status}/>
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted">{t.category}</span>
+            </div>
+            <h3 className="mt-5 font-display text-xl font-bold leading-tight transition-colors group-hover:text-chartreuse">{t.name}</h3>
+            <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted">{t.blurb}</p>
+
+            <div className="mt-5 space-y-3">
+              <ScoreBar label="Opportunity" value={t.opportunity} color="#d4ff00"/>
+              <ScoreBar label="Relevance" value={t.relevance} color="#22e0ff"/>
+            </div>
+
+            <div className="mt-5 flex items-center justify-between border-t border-line pt-4">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted">Horizon</span>
+              <span className="font-mono text-[11px] font-medium text-paper">{t.horizon}</span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   PAGE 03 — TREND DETAIL
+   ============================================================ */
+function TrendDetail({ trend, go, openTrend }) {
+  const d = TREND_DETAIL[trend.id] || TREND_DETAIL["collectible-packaging"];
+  const related = TRENDS.filter(t=>t.id!==trend.id && t.category===trend.category).slice(0,3);
+  return (
+    <div data-view className="px-6 py-20 lg:px-14 lg:py-16">
+      <button onClick={()=>go("dashboard")} className="mb-8 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-muted transition-colors hover:text-chartreuse">← Back to dashboard</button>
+
+      {/* header */}
+      <div className="card-grad relative overflow-hidden rounded-3xl border border-line p-8 lg:p-12">
+        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full opacity-20 blur-[90px]" style={{background:"radial-gradient(circle,#d4ff00,transparent)"}}></div>
+        <div className="relative flex flex-wrap items-center gap-3">
+          <StatusPill status={trend.status}/>
+          <span className="rounded-full border border-line px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-muted">{trend.category}</span>
+          <span className="rounded-full border border-line px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-cyan">Horizon · {trend.horizon}</span>
+        </div>
+        <h1 className="relative mt-6 max-w-2xl font-display text-4xl font-extrabold leading-[0.95] lg:text-6xl">{trend.name}</h1>
+        <p className="relative mt-5 max-w-2xl text-lg text-muted">{trend.blurb}</p>
+        <div className="relative mt-8 grid max-w-md grid-cols-2 gap-6">
+          <ScoreBar label="Opportunity score" value={trend.opportunity} color="#d4ff00"/>
+          <ScoreBar label="Relevance score" value={trend.relevance} color="#22e0ff"/>
+        </div>
+      </div>
+
+      <div className="mt-8 grid gap-8 lg:grid-cols-3">
+        {/* main column */}
+        <div className="space-y-8 lg:col-span-2">
+          <Block title="What is happening" accent="#22e0ff">
+            <ul className="space-y-3">
+              {d.happening.map((x,i)=><li key={i} className="flex gap-3 text-muted"><span className="mt-1 text-cyan">›</span><span>{x}</span></li>)}
+            </ul>
+          </Block>
+          <Block title="Why it matters" accent="#d4ff00">
+            <p className="text-lg leading-relaxed text-paper">{d.matters}</p>
+          </Block>
+          <Block title="Evidence signals" accent="#00ff9d">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {d.evidence.map((e,i)=>(
+                <div key={i} className="rounded-xl border border-line bg-white/[0.02] p-4">
+                  <div className="font-display text-2xl font-extrabold text-neon">{e.value}</div>
+                  <div className="mt-1 font-mono text-[10px] uppercase tracking-widest text-paper">{e.label}</div>
+                  <div className="mt-1 text-xs text-muted">{e.note}</div>
+                </div>
+              ))}
+            </div>
+          </Block>
+          <Block title="Possible executions" accent="#ff2d78">
+            <div className="space-y-2">
+              {d.executions.map((x,i)=>(
+                <div key={i} className="flex items-center gap-4 rounded-xl border border-line bg-white/[0.02] px-4 py-3 transition-colors hover:border-pink/40">
+                  <span className="font-mono text-xs text-pink">{String(i+1).padStart(2,"0")}</span>
+                  <span className="text-sm text-paper">{x}</span>
+                </div>
+              ))}
+            </div>
+          </Block>
+        </div>
+
+        {/* side column */}
+        <div className="space-y-8">
+          <Block title="Brand opportunity" accent="#d4ff00">
+            <p className="leading-relaxed text-paper">{d.opportunity}</p>
+          </Block>
+          <Block title="Best categories" accent="#22e0ff">
+            <div className="flex flex-wrap gap-2">
+              {d.bestFor.map(c=><span key={c} className="rounded-full border border-line px-3 py-1.5 font-mono text-[11px] text-paper">{c}</span>)}
+            </div>
+          </Block>
+          <div className="card-grad rounded-2xl border border-chartreuse/40 p-6 glow-y">
+            <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-chartreuse">
+              <span className="spark text-base">✶</span> FUSE POV
+            </div>
+            <p className="leading-relaxed text-paper">{d.pov}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* related */}
+      {related.length>0 &&
+        <div className="mt-14">
+          <SectionLabel>Related signals</SectionLabel>
+          <div className="grid gap-5 sm:grid-cols-3">
+            {related.map(t=>(
+              <button key={t.id} onClick={()=>openTrend(t)} className="card-grad hoverlift rounded-2xl border border-line p-5 text-left">
+                <StatusPill status={t.status}/>
+                <h4 className="mt-3 font-display text-base font-bold">{t.name}</h4>
+                <p className="mt-1 line-clamp-2 text-xs text-muted">{t.blurb}</p>
+              </button>
+            ))}
+          </div>
+        </div>}
+    </div>
+  );
+}
+function Block({ title, accent, children }) {
+  return (
+    <section className="card-grad rounded-2xl border border-line p-6 lg:p-7">
+      <div className="mb-4 flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.25em]" style={{color:accent}}>
+        <span className="h-px w-6" style={{background:accent}}></span>{title}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/* ============================================================
+   PAGE 04 — FUSE PICKS
+   ============================================================ */
+function Picks() {
+  return (
+    <div data-view className="px-6 py-20 lg:px-14 lg:py-16">
+      <SectionLabel n="03">FUSE Picks</SectionLabel>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h2 className="max-w-xl font-display text-4xl font-extrabold leading-[0.95] lg:text-5xl">The work we wish we'd made.</h2>
+        <p className="max-w-xs text-sm text-muted">A curated editorial of the sharpest creative landing right now — scored on the FUSE system.</p>
+      </div>
+
+      <div className="mt-10 grid gap-6 lg:grid-cols-2">
+        {PICKS.map((p,i)=>{
+          const hex = accentHex[p.accent];
+          return (
+            <article key={p.id} className="card-grad hoverlift group relative overflow-hidden rounded-3xl border border-line p-7 float-up" style={{animationDelay:`${i*50}ms`}}>
+              <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-15 blur-[70px]" style={{background:hex}}></div>
+              <div className="relative flex items-start justify-between">
+                <div>
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted">{p.brand} · {p.country}</div>
+                  <h3 className="mt-1.5 font-display text-2xl font-extrabold leading-tight transition-colors" style={{}}>{p.campaign}</h3>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="font-display text-4xl font-extrabold" style={{color:hex, textShadow:`0 0 20px ${hex}66`}}>{p.score}</div>
+                  <div className="font-mono text-[9px] uppercase tracking-widest text-muted">FUSE Score</div>
+                </div>
+              </div>
+              <p className="relative mt-4 leading-relaxed text-muted"><span className="text-paper">Why we picked it — </span>{p.why}</p>
+              <div className="relative mt-5 flex flex-wrap gap-2">
+                {p.tags.map(t=><span key={t} className="rounded-full border border-line px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-paper">{t}</span>)}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   PAGE 05 — OPPORTUNITY TRANSLATOR
+   ============================================================ */
+function Translator() {
+  const [industry, setIndustry] = useState("FMCG");
+  const t = TRANSLATIONS[industry];
+  const effortColor = { Low:"#00ff9d", Medium:"#d4ff00", High:"#ff4d2e" }[t.effort];
+  return (
+    <div data-view className="px-6 py-20 lg:px-14 lg:py-16">
+      <SectionLabel n="04">Opportunity Translator</SectionLabel>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h2 className="max-w-xl font-display text-4xl font-extrabold leading-[0.95] lg:text-5xl">One trend.<br/>Every industry.</h2>
+        <p className="max-w-xs text-sm text-muted">See how a single signal becomes a different creative play for each sector.</p>
+      </div>
+
+      <div className="mt-9 card-grad rounded-2xl border border-line p-5">
+        <div className="font-mono text-[10px] uppercase tracking-widest text-muted">Trend in focus</div>
+        <div className="mt-1 font-display text-xl font-bold text-chartreuse">Collectible Packaging</div>
+      </div>
+
+      {/* industry selector */}
+      <div className="mt-6 flex flex-wrap gap-2">
+        {INDUSTRIES.map(ind=>(
+          <button key={ind} onClick={()=>setIndustry(ind)}
+            className={"rounded-full border px-5 py-2.5 font-display text-sm font-bold transition-all "+
+              (industry===ind ? "border-chartreuse bg-chartreuse text-black" : "border-line text-muted hover:border-paper/40 hover:text-paper")}>
+            {ind}
+          </button>
+        ))}
+      </div>
+
+      {/* result */}
+      <div key={industry} className="mt-8 grid gap-6 lg:grid-cols-3 float-up">
+        <div className="card-grad rounded-3xl border border-chartreuse/30 p-8 lg:col-span-2">
+          <div className="font-mono text-[10px] uppercase tracking-widest text-muted">For {industry}</div>
+          <h3 className="mt-2 font-display text-3xl font-extrabold leading-tight text-paper">{t.headline}</h3>
+          <p className="mt-4 text-lg leading-relaxed text-muted">{t.play}</p>
+        </div>
+        <div className="space-y-6">
+          <div className="card-grad rounded-2xl border border-line p-6">
+            <div className="font-mono text-[10px] uppercase tracking-widest text-muted">Primary KPI</div>
+            <div className="mt-2 font-display text-lg font-bold text-cyan">{t.kpi}</div>
+          </div>
+          <div className="card-grad rounded-2xl border border-line p-6">
+            <div className="font-mono text-[10px] uppercase tracking-widest text-muted">Build effort</div>
+            <div className="mt-2 font-display text-lg font-bold" style={{color:effortColor}}>{t.effort}</div>
+          </div>
+          <div className="card-grad rounded-2xl border border-line p-6">
+            <div className="font-mono text-[10px] uppercase tracking-widest text-muted">Lead unit</div>
+            <div className="mt-2 font-display text-lg font-bold text-pink">FUSE Production</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   PAGE 06 — FUSE SCORE SYSTEM
+   ============================================================ */
+function ScoreSystem() {
+  return (
+    <div data-view className="px-6 py-20 lg:px-14 lg:py-16">
+      <SectionLabel n="05">FUSE Score System</SectionLabel>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h2 className="max-w-xl font-display text-4xl font-extrabold leading-[0.95] lg:text-5xl">How we score the signal.</h2>
+        <p className="max-w-xs text-sm text-muted">Six weighted dimensions. Every trend and every pick runs through the same lens.</p>
+      </div>
+
+      <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {SCORE_CRITERIA.map((c,i)=>{
+          const hex = accentHex[c.accent];
+          return (
+            <div key={c.name} className="card-grad hoverlift rounded-2xl border border-line p-7 float-up" style={{animationDelay:`${i*50}ms`}}>
+              <div className="flex items-start justify-between">
+                <span className="grid h-11 w-11 place-items-center rounded-xl border border-line text-xl" style={{color:hex}}>{c.icon}</span>
+                <span className="font-display text-3xl font-extrabold" style={{color:hex}}>{c.weight}<span className="text-base text-muted">%</span></span>
+              </div>
+              <h3 className="mt-5 font-display text-xl font-bold">{c.name}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{c.desc}</p>
+              <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+                <div className="h-full rounded-full" style={{width:`${c.weight*5}%`, background:hex, boxShadow:`0 0 10px ${hex}`}}></div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-8 card-grad flex flex-wrap items-center justify-between gap-6 rounded-2xl border border-chartreuse/30 p-8 glow-y">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-widest text-muted">Composite scale</div>
+          <p className="mt-2 max-w-md text-paper">Weighted to a single 0–100 FUSE Score. 85+ is a pick. Below 60 stays on the watchlist.</p>
+        </div>
+        <div className="flex items-center gap-6">
+          {[["60","Watch","#8c8c86"],["75","Strong","#22e0ff"],["85","Pick","#d4ff00"]].map(([n,l,col])=>(
+            <div key={l} className="text-center">
+              <div className="font-display text-4xl font-extrabold" style={{color:col}}>{n}+</div>
+              <div className="font-mono text-[10px] uppercase tracking-widest text-muted">{l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   PAGE 07 — REPORT GENERATOR
+   ============================================================ */
+function Reports() {
+  const [active, setActive] = useState(null);
+  const [phase, setPhase] = useState("idle"); // idle | building | done
+  const timer = useRef(null);
+
+  function generate(r) {
+    setActive(r.id); setPhase("building");
+    clearTimeout(timer.current);
+    timer.current = setTimeout(()=> setPhase("done"), 1800);
+  }
+  useEffect(()=>()=>clearTimeout(timer.current),[]);
+
+  return (
+    <div data-view className="px-6 py-20 lg:px-14 lg:py-16">
+      <SectionLabel n="06">Monthly Report Generator</SectionLabel>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h2 className="max-w-xl font-display text-4xl font-extrabold leading-[0.95] lg:text-5xl">Ship the intelligence.</h2>
+        <p className="max-w-xs text-sm text-muted">Turn the live radar into client-ready outputs in one click — formatted, branded, on tone.</p>
+      </div>
+
+      <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {REPORTS.map((r,i)=>{
+          const hex = accentHex[r.accent];
+          const isActive = active===r.id;
+          return (
+            <div key={r.id} className="card-grad hoverlift flex flex-col rounded-2xl border border-line p-7 float-up" style={{animationDelay:`${i*50}ms`}}>
+              <div className="flex items-start justify-between">
+                <span className="grid h-11 w-11 place-items-center rounded-xl border border-line text-xl" style={{color:hex}}>{r.icon}</span>
+                <span className="font-mono text-[10px] uppercase tracking-widest text-muted">{r.fmt}</span>
+              </div>
+              <h3 className="mt-5 font-display text-xl font-bold">{r.title}</h3>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{r.desc}</p>
+
+              <button onClick={()=>generate(r)}
+                className="mt-6 flex items-center justify-center gap-2 rounded-full border px-5 py-3 font-display text-sm font-bold transition-all"
+                style={ isActive && phase!=="idle"
+                  ? { borderColor:hex, color:"#050505", background:hex }
+                  : { borderColor:"rgba(255,255,255,0.09)", color:"#f4f4ef" } }>
+                {isActive && phase==="building" && <span>Generating…</span>}
+                {isActive && phase==="done" && <span>✓ Ready — Download</span>}
+                {(!isActive || phase==="idle") && <span>Generate · {r.time}</span>}
+              </button>
+
+              {isActive && phase==="building" &&
+                <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-white/10">
+                  <div className="h-full rounded-full" style={{background:hex, animation:"sweep 1.8s linear", width:"100%", transformOrigin:"left", animationName:"none"}}></div>
+                  <div className="h-full -mt-1 rounded-full" style={{background:hex, width:"60%", transition:"width 1.6s ease"}}></div>
+                </div>}
+            </div>
+          );
+        })}
+
+        {/* live preview tile */}
+        <div className="card-grad rounded-2xl border border-line p-7">
+          <div className="font-mono text-[10px] uppercase tracking-widest text-muted">Output preview</div>
+          <div className="mt-4 rounded-xl border border-line bg-black/40 p-5 font-mono text-xs leading-relaxed text-muted">
+            <div className="text-chartreuse">FUSE://radar/report</div>
+            <div className="mt-2">› month .... <span className="text-paper">JUN 2026</span></div>
+            <div>› signals .. <span className="text-paper">12 tracked</span></div>
+            <div>› upgrades . <span className="text-neon">+3</span></div>
+            <div>› retired .. <span className="text-orange">1</span></div>
+            <div className="mt-2 text-paper">{phase==="done" ? "✓ Document built." : phase==="building" ? "Compiling layout…" : "Awaiting generate…"}<span className="blink">▌</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   ROOT
+   ============================================================ */
+function App() {
+  const [view, setView] = useState("home");
+  const [trend, setTrend] = useState(TRENDS[0]);
+  const [navOpen, setNavOpen] = useState(false);
+  const scrollRef = useRef(null);
+
+  function go(v){ setView(v); if(scrollRef.current) scrollRef.current.scrollTop = 0; }
+  function openTrend(t){ setTrend(t); go("detail"); }
+
+  return (
+    <div className="flex min-h-screen">
+      <Sidebar view={view} go={go} open={navOpen} setOpen={setNavOpen}/>
+      <main ref={scrollRef} className="h-screen flex-1 overflow-y-auto lg:ml-[240px]">
+        <div className="pt-14 lg:pt-0">
+          {view==="home" && <Hero go={go} openTrend={openTrend}/>}
+          {view==="dashboard" && <Dashboard openTrend={openTrend}/>}
+          {view==="detail" && <TrendDetail trend={trend} go={go} openTrend={openTrend}/>}
+          {view==="picks" && <Picks/>}
+          {view==="translator" && <Translator/>}
+          {view==="score" && <ScoreSystem/>}
+          {view==="reports" && <Reports/>}
+
+          <footer className="border-t border-line px-6 py-10 lg:px-14">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <Logo size={18}/>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-muted">© 2026 FUSE · Creative AI Production Unit · People lead. AI expands. Craft decides.</p>
+            </div>
+          </footer>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
